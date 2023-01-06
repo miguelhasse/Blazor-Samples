@@ -1,0 +1,83 @@
+﻿@page "/"
+@namespace BlazorMapTiles.Server.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@model HostModel
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BlazorMapTiles</title>
+    <base href="~/" />
+    <environment exclude="Development">
+        <link href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.css" rel="stylesheet" type="text/css" />
+        <link href="https://atlas.microsoft.com/sdk/javascript/indoor/0.1/atlas-indoor.min.css" rel="stylesheet" type="text/css" />
+    </environment>
+    <environment include="Development">
+        <link href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.css" rel="stylesheet" type="text/css" />
+        <link href="https://atlas.microsoft.com/sdk/javascript/indoor/0.1/atlas-indoor.css" rel="stylesheet" type="text/css" />
+    </environment>
+    <link href="https://atlas.microsoft.com/sdk/javascript/drawing/0.1/atlas-drawing.min.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link href="css/site.css" rel="stylesheet" />
+    @*<link href="BlazorMapTiles.Server.styles.css" rel="stylesheet">*@
+</head>
+<body>
+    <app>
+        <component type="@typeof(Client.App)" render-mode="@Model.RenderMode" />
+    </app>
+
+    @if (Model.Prerendered)
+    {
+        <persist-component-state />
+    }
+
+    <div id="blazor-error-ui">
+        <environment exclude="Development">
+            An error has occurred. This application may no longer respond until reloaded.
+        </environment>
+        <environment include="Development">
+            An unhandled exception has occurred. See browser dev tools for details.
+        </environment>
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <environment exclude="Development">
+        <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.js"></script>
+        <script src="https://atlas.microsoft.com/sdk/javascript/indoor/0.1/atlas-indoor.min.js"></script>
+        <script src="https://atlas.microsoft.com/sdk/javascript/drawing/0.1/atlas-drawing.min.js"></script>
+        <script src="https://atlas.microsoft.com/sdk/javascript/spatial/0.1/atlas-spatial.min.js"></script>
+        <script src="_content/AzureMapsControl.Components/azure-maps-control.min.js"></script>
+    </environment>
+    <environment include="Development">
+        <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.js"></script>
+        <script src="https://atlas.microsoft.com/sdk/javascript/indoor/0.1/atlas-indoor.js"></script>
+        <script src="https://atlas.microsoft.com/sdk/javascript/drawing/0.1/atlas-drawing.js"></script>
+        <script src="https://atlas.microsoft.com/sdk/javascript/spatial/0.1/atlas-spatial.js"></script>
+        <script src="_content/AzureMapsControl.Components/azure-maps-control.js"></script>
+    </environment>
+
+    <script type="text/javascript">
+        azureMapsControl.Extensions.getTokenCallback = (resolve, reject, map) => {
+            const url = "url_of_token_endpoint";
+            fetch(url).then(function (response) {
+                return response.text();
+            }).then(function (token) {
+                resolve(token);
+            });
+        };
+    </script>
+
+    <script src="_framework/blazor.@(Model.HostingMode).js" autostart="false"></script>
+
+    <script>
+        Blazor.start({
+            environment: "@Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")",
+            logLevel: 1, // LogLevel.Debug
+            configureSignalR: builder => builder.configureLogging("debug") // LogLevel.Debug
+        });
+    </script>
+</body>
+</html>

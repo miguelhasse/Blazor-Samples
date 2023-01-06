@@ -1,0 +1,139 @@
+﻿@page "/"
+
+@using System.Linq
+@using AzureMapsControl.Components.Atlas
+@using AzureMapsControl.Components.Controls
+@using AzureMapsControl.Components.Data
+@using AzureMapsControl.Components.Layers
+@using AzureMapsControl.Components.Map
+
+@inject NavigationManager NavigationManager
+
+<AzureMap Id="map" CameraOptions="CameraOptions" StyleOptions="StyleOptions"
+          EventActivationFlags="@MapEventActivationFlags.None().Enable(MapEventType.Ready, MapEventType.SourceAdded, MapEventType.Error)"
+          OnReady="OnReady" OnSourceAdded="OnDatasourceAdded" OnError="OnError" />
+
+@code {
+    private CameraOptions CameraOptions = new CameraOptions
+    {
+        Center = new Position(15.007631, 58.302580),
+        MaxZoom = 16,
+        Zoom = 4
+    };
+
+    private StyleOptions StyleOptions = new StyleOptions
+    {
+        Style = MapStyle.GrayscaleLight,
+        ShowFeedbackLink = false,
+        ShowLogo = false
+    };
+
+    public async Task OnReady(MapEventArgs args)
+    {
+        await args.Map.AddSourceAsync(new VectorTileSource("railsource")
+        {
+            Options = new VectorTileSourceOptions
+            {
+                Tiles = new[] { NavigationManager.BaseUri + "tiles/{z}/{x}/{y}.pbf" }
+            }
+        });
+
+        await args.Map.AddControlsAsync(new ZoomControl(new ZoomControlOptions { Style = ControlStyle.Auto }, ControlPosition.BottomLeft));
+    }
+
+    public async Task OnDatasourceAdded(MapSourceEventArgs args)
+    {
+        if (args.Source.Id == "railsource")
+        {
+            await AddRailwayLayer(args.Map, args.Source.Id, "railway");
+            await AddStationsLayer(args.Map, args.Source.Id, "station");
+        }
+    }
+
+    public Task OnError(MapErrorEventArgs args)
+    {
+        Console.WriteLine(args.Error);
+        return Task.CompletedTask;
+    }
+
+    private ValueTask AddRailwayLayer(Map map, string id, string sourceLayer)
+    {
+        var layer = new LineLayer
+        {
+            EventActivationFlags = LayerEventActivationFlags.None().Enable(LayerEventType.LayerAdded, LayerEventType.Click),
+            Options = new LineLayerOptions
+            {
+                Source = id,
+                SourceLayer = sourceLayer,
+                StrokeColor = new ExpressionOrString("#696969"),
+                StrokeWidth = new ExpressionOrNumber(new[]
+                {
+                    new ExpressionOrString("interpolate"),
+                    new Expression(new [] { new ExpressionOrString("linear") }),
+                    new Expression(new [] { new ExpressionOrString("zoom") }),
+                    new ExpressionOrNumber(4), new ExpressionOrNumber(1),
+                    new ExpressionOrNumber(10), new ExpressionOrNumber(2),
+                    new ExpressionOrNumber(14), new ExpressionOrNumber(3),
+                    new ExpressionOrNumber(16), new ExpressionOrNumber(4),
+                }),
+                StrokeOpacity = new ExpressionOrNumber(new[]
+                {
+                    new ExpressionOrString("interpolate"),
+                    new Expression(new [] { new ExpressionOrString("linear") }),
+                    new Expression(new [] { new ExpressionOrString("zoom") }),
+                    new ExpressionOrNumber(4), new ExpressionOrNumber(0.1),
+                    new ExpressionOrNumber(10), new ExpressionOrNumber(0.3),
+                    new ExpressionOrNumber(14), new ExpressionOrNumber(0.7),
+                    new ExpressionOrNumber(16), new ExpressionOrNumber(1)
+                })
+            }
+        };
+
+        layer.OnClick += OnLayerClick;
+
+        layer.OnLayerAdded += e =>
+        {
+            Console.WriteLine("Railways Layer added");
+        };
+
+        return map.AddLayerAsync(layer, "labels");
+    }
+
+    private ValueTask AddStationsLayer(Map map, string id, string sourceLayer)
+    {
+        var layer = new BubbleLayer
+            {
+                EventActivationFlags = LayerEventActivationFlags.None().Enable(LayerEventType.LayerAdded, LayerEventType.Click),
+                Options = new BubbleLayerOptions
+                {
+                    Source = id,
+                    SourceLayer = sourceLayer,
+                    Color = new ExpressionOrString("white"),
+                    Radius = new ExpressionOrNumber(4),
+                    StrokeColor = new ExpressionOrString("#4288f7"),
+                    StrokeWidth = new ExpressionOrNumber(5)
+                }
+            };
+
+        layer.OnClick += OnLayerClick;
+
+        layer.OnLayerAdded += e =>
+        {
+            Console.WriteLine("Stations Layer added");
+        };
+
+        return map.AddLayerAsync(layer, "labels");
+    }
+
+    private void OnLayerClick(MapMouseEventArgs args)
+    {
+        foreach (var feature in args.Features)
+        {
+            Console.WriteLine($"FEATURE: {feature.Id}");
+
+            foreach (var prop in feature.Properties.DistinctBy(s => s.Key).OrderBy(s => s.Key))
+                Console.WriteLine($"» {prop.Key}: {prop.Value}");
+        }
+
+    }
+}

@@ -1,0 +1,9 @@
+﻿<Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[]{ typeof(FetchData).Assembly }">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
+    </Found>
+    <NotFound>
+        <h1>Not found</h1>
+        <p role="alert">Sorry, but there's nothing here!</p>
+    </NotFound>
+</Router>

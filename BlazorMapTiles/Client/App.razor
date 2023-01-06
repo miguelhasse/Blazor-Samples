@@ -1,0 +1,15 @@
+﻿@using System.Reflection;
+
+<Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="AssembliesWithPages">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
+    </Found>
+    <NotFound>
+        <h1>Not found</h1>
+        <p role="alert">Sorry, but there's nothing here!</p>
+    </NotFound>
+</Router>
+
+@code {
+    private IEnumerable<Assembly> AssembliesWithPages => new[] { Assembly.Load("BlazorMapTiles.Shared") };
+}
