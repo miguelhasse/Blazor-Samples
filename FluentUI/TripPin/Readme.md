@@ -1,0 +1,3 @@
+- [TripPin - OData V4 Sample Service](https://www.odata.org/blog/trippin-new-odata-v4-sample-service/)
+- [OData Documentation](https://learn.microsoft.com/en-us/odata/)
+- [OData Dev Blog](https://devblogs.microsoft.com/odata/)

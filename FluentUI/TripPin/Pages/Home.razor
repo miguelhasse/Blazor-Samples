@@ -1,0 +1,67 @@
+﻿@page "/"
+
+@using FluentUI.TripPin.Model
+@using FluentUI.TripPin.Client.Controls
+
+<PageTitle>@Entity</PageTitle>
+
+<FluentStack VerticalAlignment="VerticalAlignment.Center">
+    <FluentLabel Typo="Typography.PageTitle" Color="Color.Accent">@Entity</FluentLabel>
+    <FluentStack HorizontalAlignment="HorizontalAlignment.End">
+        <FluentSwitch @bind-Value="@Virtualize" Disabled="@(Entity is null)" Label="Virtualize" />
+    </FluentStack>
+</FluentStack>
+
+<ErrorBoundary @ref="_errorBoundary">
+    <ChildContent>
+        @_childContent
+    </ChildContent>
+    <ErrorContent Context="ex">
+        <div class="blazor-error-boundary">@ex.Message</div>
+    </ErrorContent>
+</ErrorBoundary>
+
+@code {
+    private RenderFragment? _childContent;
+    private ErrorBoundary? _errorBoundary;
+
+    [SupplyParameterFromQuery]
+    private string? Entity { get; set; }
+
+    [SupplyParameterFromQuery]
+    private bool Virtualize { get; set; }
+
+    [Inject]
+    private Container Container { get; set; } = default!;
+
+    protected override void OnParametersSet()
+    {
+        _errorBoundary?.Recover();
+
+		if (Entity == null)
+            return;
+
+        var model = Container.Format.LoadServiceModel();
+        var entitySet = model.EntityContainer.FindEntitySet(Entity);
+
+        if (entitySet == null)
+            return;
+		
+        var containerType = typeof(Container);
+        var entityType = Type.GetType($"{containerType.Namespace}.{entitySet.EntityType.Name}", true)!;
+        var items = containerType.GetMethod(nameof(Container.CreateQuery), [typeof(string)])!
+            .MakeGenericMethod(entityType).Invoke(Container, [entitySet.Name]);
+
+        var content = FluentDataGridEntityHelpers.ColumnsRenderFragment(entitySet,
+			Container.ResolveType, prop => new Dictionary<string, object> { { "Sortable", true } });
+
+        _childContent = builder =>
+        {
+            builder.OpenComponent(0, typeof(PaginatedDataGrid<>).MakeGenericType(entityType));
+            builder.AddAttribute(1, "Items", items);
+            builder.AddAttribute(2, "ChildContent", content);
+            builder.AddAttribute(3, "Virtualize", Virtualize);
+            builder.CloseComponent();
+        };
+    }
+}

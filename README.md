@@ -4,6 +4,10 @@ BlazorDualMode - Demo on how to dynamically switch from client to server side mo
 
 BlazorMapTiles - Blazor hosted Azure Maps control consuming a custom Mapbox vector tile service, built using Open Street Maps data.
 
+FluentUI.AdventureWorks - Demo on using Fluent UI DataGrid component connected to a SQL Server database.
+
+FluentUI.TripPin - Demo on using Fluent UI DataGrid component consuming an OData API endpoint.
+
 ## References
 
 [Managed identities for Azure Maps](https://techcommunity.microsoft.com/t5/azure-maps-blog/managed-identities-for-azure-maps/ba-p/3666312)

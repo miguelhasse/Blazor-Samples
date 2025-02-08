@@ -1,0 +1,78 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+
+@using System.Reflection
+@using FluentUI.AdventureWorks.Server.Data
+@using FluentUI.AdventureWorks.Server.Components.Controls
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>@Entity</PageTitle>
+
+<FluentStack VerticalAlignment="VerticalAlignment.Center">
+    <FluentLabel Typo="Typography.PageTitle" Color="Color.Accent">@Entity</FluentLabel>
+    <FluentStack HorizontalAlignment="HorizontalAlignment.End">
+        <FluentSwitch @bind-Value="@Virtualize" Disabled="@(Entity is null)" Label="Virtualize" />
+    </FluentStack>
+</FluentStack>
+
+<ErrorBoundary @ref="_errorBoundary">
+    <ChildContent>
+        @_childContent
+    </ChildContent>
+    <ErrorContent Context="ex">
+        <div class="blazor-error-boundary">@ex.Message</div>
+    </ErrorContent>
+</ErrorBoundary>
+
+@code {
+    private DbContext? _dataContext;
+    private RenderFragment? _childContent;
+    private ErrorBoundary? _errorBoundary;
+
+    [SupplyParameterFromQuery]
+    private string? Entity { get; set; }
+
+    [SupplyParameterFromQuery]
+    private bool Virtualize { get; set; }
+
+    [Inject]
+    private IDbContextFactory<AdventureWorksContext> DataContextFactory { get; set; } = default!;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _errorBoundary?.Recover();
+
+        if (Entity == null)
+            return;
+
+        _dataContext = await DataContextFactory.CreateDbContextAsync();
+        _dataContext.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+        var entityType = _dataContext.Model.GetEntityTypes()
+            .FirstOrDefault(s => string.Join(".", s.GetSchema() ?? "dbo", s.GetTableName() ?? s.GetViewName()!) == Entity);
+
+        if (entityType == null)
+        {
+            await _dataContext.DisposeAsync();
+            return;
+        }
+ 
+        var items = typeof(DbContext).GetMethod(nameof(DbContext.Set), [])!
+            .MakeGenericMethod(entityType.ClrType).Invoke(_dataContext, null);
+
+        var content = FluentDataGridEntityHelpers.ColumnsRenderFragment(entityType,
+            prop => new Dictionary<string, object> { { "Sortable", true } });
+
+        _childContent = builder =>
+        {
+            builder.OpenComponent(0, typeof(PaginatedDataGrid<>).MakeGenericType(entityType.ClrType));
+            builder.AddAttribute(1, "Items", items);
+            builder.AddAttribute(2, "ChildContent", content);
+            builder.AddAttribute(3, "Virtualize", Virtualize);
+            builder.CloseComponent();
+        };
+    }
+
+    ValueTask IAsyncDisposable.DisposeAsync() => _dataContext?.DisposeAsync() ?? ValueTask.CompletedTask;
+}

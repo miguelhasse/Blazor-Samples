@@ -1,0 +1,31 @@
+﻿@using FluentUI.TripPin.Model
+@using Microsoft.OData.Edm
+
+<div class="navmenu">
+    <input type="checkbox" title="Menu expand/collapse toggle" id="navmenu-toggle" class="navmenu-icon" />
+    <label for="navmenu-toggle" class="navmenu-icon"><FluentIcon Value="@(new Icons.Regular.Size20.Navigation())" Color="Color.Fill" /></label>
+    <nav class="sitenav" aria-labelledby="main-menu">
+        <FluentNavMenu Id="main-menu" Collapsible="true" Width="300" Title="Entity navigation menu" @bind-Expanded="expanded">
+            @foreach (var name in _elements)
+            {
+                <FluentNavLink Href="@($"/?entity={name}")" Icon="@(new Icons.Regular.Size20.Table())" IconColor="Color.Accent">@name</FluentNavLink>
+            }
+        </FluentNavMenu>
+    </nav>
+</div>
+
+@code {
+    private bool expanded = true;
+    private IEnumerable<string> _elements = [];
+
+    [Inject]
+    private Container Container { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        var model = Container.Format.LoadServiceModel();
+        _elements = model.EntityContainer.Elements
+            .Where(s => s.ContainerElementKind == EdmContainerElementKind.EntitySet)
+            .Select(s => s.Name);
+    }
+}

@@ -1,0 +1,1 @@
+dotnet ef dbcontext scaffold "Name=ConnectionStrings:AdventureWorks" Microsoft.EntityFrameworkCore.SqlServer --no-onconfiguring --context-dir Data --output-dir Data\Models --force

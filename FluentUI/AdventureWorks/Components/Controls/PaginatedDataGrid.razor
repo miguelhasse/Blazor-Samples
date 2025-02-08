@@ -1,0 +1,43 @@
+﻿@typeparam TGridItem
+
+<FluentStack Orientation="Orientation.Vertical" Style="@(Virtualize ? "height:400px;display:flex;" : "display:flex;")">
+    <FluentDataGrid @ref="_grid" TGridItem="@TGridItem" Items="@Items" Pagination="@_pagination" Virtualize="@Virtualize" ResizableColumns="true" Style="width:100%;overflow-x:auto;">
+        <ChildContent>
+            @ChildContent
+        </ChildContent>
+    </FluentDataGrid>
+@if (!Virtualize)
+{
+    <FluentPaginator State="@_pagination" Style="width:100%" Disabled="@(_grid?.Loading ?? false)">
+        <SummaryTemplate>
+            Existem <strong>@(_pagination?.TotalItemCount ?? 0)</strong> registos
+        </SummaryTemplate>
+        <PaginationTextTemplate>
+            Página <strong>@(_pagination?.CurrentPageIndex + 1)</strong> de um total de <strong>@(_pagination?.LastPageIndex + 1)</strong> páginas
+        </PaginationTextTemplate>
+    </FluentPaginator>
+}
+</FluentStack>
+
+@code {
+    private FluentDataGrid<TGridItem> _grid = default!;
+    private PaginationState? _pagination;
+
+    [Parameter]
+    public IQueryable<TGridItem>? Items { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public bool Virtualize { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _pagination = Virtualize ? null : new PaginationState { ItemsPerPage = 20 };
+    }
+
+    public void SetLoadingState(bool loading) => _grid?.SetLoadingState(loading);
+
+    public Task RefreshDataAsync() => _grid?.RefreshDataAsync() ?? Task.CompletedTask;
+}

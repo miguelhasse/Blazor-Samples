@@ -1,0 +1,38 @@
+﻿@rendermode InteractiveServer
+
+@using FluentUI.AdventureWorks.Server.Data
+@using Microsoft.EntityFrameworkCore
+
+<div class="navmenu">
+    <input type="checkbox" title="Menu expand/collapse toggle" id="navmenu-toggle" class="navmenu-icon" />
+    <label for="navmenu-toggle" class="navmenu-icon"><FluentIcon Value="@(new Icons.Regular.Size20.Navigation())" Color="Color.Neutral" /></label>
+    <nav class="sitenav" aria-labelledby="main-menu" onclick="document.getElementById('navmenu-toggle').click();">
+        <FluentNavMenu Id="main-menu" Collapsible="true" Width="300" Title="Schemas navigation menu" @bind-Expanded="expanded">
+        @foreach (var schema in _schemas)
+        {
+            <FluentNavGroup Title="@schema.Key" Icon="@(new Icons.Regular.Size20.TableMultiple())">
+            @foreach (var entity in schema)
+            {
+                <FluentNavLink Href="@($"/?entity={entity.Key}.{entity.Value}")" Icon="@(new Icons.Regular.Size20.Table())" IconColor="Color.Accent">@entity.Value</FluentNavLink>
+            }
+            </FluentNavGroup>
+        }
+        </FluentNavMenu>
+    </nav>
+</div>
+
+@code {
+    private bool expanded = true;
+    private IEnumerable<IGrouping<string, KeyValuePair<string, string>>> _schemas = [];
+
+    [Inject]
+    private IDbContextFactory<AdventureWorksContext> DataContextFactory { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DataContextFactory.CreateDbContextAsync();
+        _schemas = context.Model.GetEntityTypes()
+            .Select(s => KeyValuePair.Create(s.GetSchema() ?? "dbo", s.GetTableName() ?? s.GetViewName()!))
+            .GroupBy(s => s.Key).OrderBy(s => s.Key);
+    }
+}
