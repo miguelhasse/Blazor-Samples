@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using FluentUI.AdventureWorks.Server.Data.Models;
+using FluentUI.AdventureWorks.Data.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluentUI.AdventureWorks.Server.Data;
+namespace FluentUI.AdventureWorks.Data;
 
 public partial class AdventureWorksContext : DbContext
 {

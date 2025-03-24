@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace FluentUI.AdventureWorks.Server.Data.Models;
+namespace FluentUI.AdventureWorks.Data.Models;
 
 /// <summary>
 /// Companies from whom Adventure Works Cycles purchases parts or other goods.

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace FluentUI.AdventureWorks.Server.Data.Models;
+namespace FluentUI.AdventureWorks.Data.Models;
 
 /// <summary>
 /// Audit table tracking all DDL changes made to the AdventureWorks database. Data is captured by the database trigger ddlDatabaseTriggerLog.

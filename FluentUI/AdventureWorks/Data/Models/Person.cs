@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace FluentUI.AdventureWorks.Server.Data.Models;
+namespace FluentUI.AdventureWorks.Data.Models;
 
 /// <summary>
 /// Human beings involved with AdventureWorks: employees, customer contacts, and vendor contacts.

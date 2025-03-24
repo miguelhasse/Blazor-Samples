@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace FluentUI.AdventureWorks.Server.Data.Models;
+namespace FluentUI.AdventureWorks.Data.Models;
 
 /// <summary>
 /// Lookup table containing the ISO standard codes for countries and regions.

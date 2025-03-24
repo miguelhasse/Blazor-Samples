@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace FluentUI.AdventureWorks.Server.Data.Models;
+namespace FluentUI.AdventureWorks.Data.Models;
 
 /// <summary>
 /// Record of each purchase order, sales order, or work order transaction year to date.

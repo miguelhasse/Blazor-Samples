@@ -1,5 +1,5 @@
-using FluentUI.AdventureWorks.Server.Components;
-using FluentUI.AdventureWorks.Server.Data;
+using FluentUI.AdventureWorks.Components;
+using FluentUI.AdventureWorks.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.FluentUI.AspNetCore.Components;
 
