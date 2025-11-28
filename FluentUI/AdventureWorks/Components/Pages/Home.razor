@@ -2,9 +2,12 @@
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 
-@using System.Reflection
 @using FluentUI.AdventureWorks.Data
+@using FluentUI.AdventureWorks.Components.Controls
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.EntityFrameworkCore.Metadata
+@using System.Linq.Expressions
+@using System.Reflection
 
 <PageTitle>@Entity</PageTitle>
 
@@ -56,22 +59,76 @@
             await _dataContext.DisposeAsync();
             return;
         }
- 
-        var items = typeof(DbContext).GetMethod(nameof(DbContext.Set), [])!
+
+        var items = _dataContext.GetType().GetMethod(nameof(DbContext.Set), Type.EmptyTypes)!
             .MakeGenericMethod(entityType.ClrType).Invoke(_dataContext, null);
 
         var content = FluentDataGridEntityHelpers.ColumnsRenderFragment(entityType,
             prop => new Dictionary<string, object> { { "Sortable", true } });
+
+        var comparer = BuildEqualityComparer(entityType);
 
         _childContent = builder =>
         {
             builder.OpenComponent(0, typeof(PaginatedDataGrid<>).MakeGenericType(entityType.ClrType));
             builder.AddAttribute(1, "Items", items);
             builder.AddAttribute(2, "ChildContent", content);
-            builder.AddAttribute(3, "Virtualize", Virtualize);
+            builder.AddAttribute(3, "Comparer", comparer);
+            builder.AddAttribute(4, "SelectMode", DataGridSelectMode.Multiple);
+            builder.AddAttribute(5, "Virtualize", Virtualize);
             builder.CloseComponent();
         };
     }
 
     ValueTask IAsyncDisposable.DisposeAsync() => _dataContext?.DisposeAsync() ?? ValueTask.CompletedTask;
+
+    public static object? BuildEqualityComparer(IEntityType entityType)
+    {
+        var propertyNames = entityType.FindPrimaryKey()?.Properties.Select(p => p.Name).ToArray();
+        var clrType = entityType.ClrType;
+
+        // If no primary key, use all properties
+        propertyNames ??= entityType.GetProperties()
+            .Where(p => !p.IsConcurrencyToken && !p.IsShadowProperty())
+            .Select(p => p.Name)
+            .ToArray();
+
+        if (propertyNames == null || propertyNames.Length == 0)
+            return null;
+
+        var parameter = Expression.Parameter(clrType, "x");
+        var propertyAccesses = new List<Expression>();
+
+        foreach (var name in propertyNames)
+        {
+            var property = clrType.GetProperty(name, BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new ArgumentException($"Property '{name}' not found on type {clrType.Name}");
+            propertyAccesses.Add(Expression.Convert(Expression.Property(parameter, property), typeof(object)));
+        }
+
+        var delegateType = typeof(Func<,>).MakeGenericType(clrType, typeof(object[]));
+        var expression = Expression.Lambda(delegateType, Expression.NewArrayInit(typeof(object), propertyAccesses), parameter);
+
+        return Activator.CreateInstance(typeof(EntityEqualityComparer<>).MakeGenericType(clrType), expression.Compile());
+    }
+
+    public sealed class EntityEqualityComparer<T>(Func<T, object[]> selector) : IEqualityComparer<T>
+    {
+        public bool Equals(T? x, T? y)
+        {
+            if (ReferenceEquals(x, y))
+            {
+                return true;
+            }
+
+            if (x is null || y is null)
+            {
+                return false;
+            }
+
+            return selector(x).SequenceEqual(selector(y));
+        }
+
+        public int GetHashCode(T obj) => selector(obj).GetHashCode();
+    }
 }

@@ -1,21 +1,23 @@
 ﻿@typeparam TGridItem
 
 <FluentStack Orientation="Orientation.Vertical" Style="@(Virtualize ? "height:400px;display:flex;" : "display:flex;")">
-    <FluentDataGrid @ref="_grid" TGridItem="@TGridItem" Items="@Items" Pagination="@_pagination" Virtualize="@Virtualize" ResizableColumns="true" Style="width:100%;overflow-x:auto;">
+    <FluentDataGrid @ref="_grid" TGridItem="@TGridItem" Items="@Items" Pagination="@_pagination" Virtualize="@Virtualize" HandleLoadingError="@(ex => true)" Loading="true" ResizableColumns="true" Style="width:100%;overflow-x:auto;">
         <ChildContent>
+            @if (SelectMode.HasValue)
+            {
+                <SelectColumn TGridItem="@TGridItem" @bind-SelectedItems="@SelectedItems" Comparer="@Comparer" SelectMode="@SelectMode.Value" SelectFromEntireRow="true" />
+            }
             @ChildContent
         </ChildContent>
+        <ErrorContent>
+            <span @onclick="() => RefreshDataAsync()" style="cursor:pointer">
+                Error occurred  while loading data. Click here to retry.
+            </span>
+        </ErrorContent>
     </FluentDataGrid>
-@if (!Virtualize)
+@if (_pagination != null)
 {
-    <FluentPaginator State="@_pagination" Style="width:100%" Disabled="@(_grid?.Loading ?? false)">
-        <SummaryTemplate>
-            Existem <strong>@(_pagination?.TotalItemCount ?? 0)</strong> registos
-        </SummaryTemplate>
-        <PaginationTextTemplate>
-            Página <strong>@(_pagination?.CurrentPageIndex + 1)</strong> de um total de <strong>@(_pagination?.LastPageIndex + 1)</strong> páginas
-        </PaginationTextTemplate>
-    </FluentPaginator>
+    <FluentPaginator State="@_pagination" Style="width:100%" Disabled="@(_grid?.Loading ?? false)" />
 }
 </FluentStack>
 
@@ -28,6 +30,15 @@
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public DataGridSelectMode? SelectMode { get; set; }
+
+    [Parameter]
+    public IEnumerable<TGridItem> SelectedItems { get; set; } = [];
+
+    [Parameter]
+    public IEqualityComparer<TGridItem>? Comparer { get; set; } = null;
 
     [Parameter]
     public bool Virtualize { get; set; }

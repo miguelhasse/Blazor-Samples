@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -20,7 +20,6 @@
     <PackageReference Include="Microsoft.OData.Client" />
     <PackageReference Include="Microsoft.OData.Extensions.Client" />
     <PackageReference Include="System.ComponentModel.Annotations" />
-    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
   
 </Project>
