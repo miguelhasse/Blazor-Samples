@@ -1,12 +1,12 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <RuntimeVersion9>9.0.9</RuntimeVersion9>
-    <AspNetCoreVersion9>9.0.9</AspNetCoreVersion9>
-    <EfCoreVersion9>9.0.9</EfCoreVersion9>
-    <RuntimeVersion10>10.0.0</RuntimeVersion10>
-    <AspNetCoreVersion10>10.0.0</AspNetCoreVersion10>
-    <EfCoreVersion10>10.0.0</EfCoreVersion10>
+    <RuntimeVersion9>9.0.11</RuntimeVersion9>
+    <AspNetCoreVersion9>9.0.11</AspNetCoreVersion9>
+    <EfCoreVersion9>9.0.11</EfCoreVersion9>
+    <RuntimeVersion10>10.0.1</RuntimeVersion10>
+    <AspNetCoreVersion10>10.0.1</AspNetCoreVersion10>
+    <EfCoreVersion10>10.0.1</EfCoreVersion10>
   </PropertyGroup>
   <ItemGroup>
     <!-- For Sample Apps -->
@@ -38,12 +38,11 @@
     <PackageVersion Include="Microsoft.Extensions.Http" Version="$(RuntimeVersion9)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(EfCoreVersion9)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EfCoreVersion9)" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="$(EfCoreVersion9)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EfCoreVersion9)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer.HierarchyId" Version="$(EfCoreVersion9)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="$(EfCoreVersion9)" />
     <PackageVersion Include="System.Text.Encodings.Web" Version="$(RuntimeVersion9)" />
-    <PackageVersion Include="System.Text.Json" Version="$(RuntimeVersion9)" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net10.0'">
     <!-- Build dependencies -->
@@ -64,6 +63,5 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer.HierarchyId" Version="$(EfCoreVersion10)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="$(EfCoreVersion10)" />
     <PackageVersion Include="System.Text.Encodings.Web" Version="$(RuntimeVersion10)" />
-    <PackageVersion Include="System.Text.Json" Version="$(RuntimeVersion9)" />
   </ItemGroup>
 </Project>
