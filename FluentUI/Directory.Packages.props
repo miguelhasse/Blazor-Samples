@@ -58,10 +58,10 @@
     <PackageVersion Include="Microsoft.Extensions.Validation" Version="$(RuntimeVersion10)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(EfCoreVersion10)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EfCoreVersion10)" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="$(EfCoreVersion10)" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EfCoreVersion10)" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer.HierarchyId" Version="$(EfCoreVersion10)" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="$(EfCoreVersion10)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer.HierarchyId" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="10.0.5" />
     <PackageVersion Include="System.Text.Encodings.Web" Version="$(RuntimeVersion10)" />
   </ItemGroup>
 </Project>

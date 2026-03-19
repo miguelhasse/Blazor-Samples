@@ -14,6 +14,7 @@ Key ideas:
 - Shared components rendered through different hosting modes
 - Query-string and environment-driven configuration
 
+Docs: [`BlazorDualMode\README.md`](BlazorDualMode/README.md)  
 Entry point: `BlazorDualMode.sln`
 
 ### BlazorMapTiles
