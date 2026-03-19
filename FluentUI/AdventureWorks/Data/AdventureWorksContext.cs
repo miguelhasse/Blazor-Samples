@@ -5,6 +5,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FluentUI.AdventureWorks.Data;
 
+/// <summary>
+/// Represents the Entity Framework database context for the AdventureWorks sample database, providing access to its
+/// entities and views.
+/// </summary>
+/// <remarks>
+/// Use this context to query and save data for the AdventureWorks schema. The context exposes DbSet
+/// properties for each entity and view, enabling LINQ queries and change tracking. Configure the context using
+/// dependency injection and provide appropriate DbContextOptions. This class is typically used in data access layers or
+/// repositories to interact with the AdventureWorks database.
+/// </remarks>
 public partial class AdventureWorksContext : DbContext
 {
     public AdventureWorksContext(DbContextOptions<AdventureWorksContext> options)

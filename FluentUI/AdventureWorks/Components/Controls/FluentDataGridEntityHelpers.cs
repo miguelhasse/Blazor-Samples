@@ -6,8 +6,24 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Microsoft.FluentUI.AspNetCore.Components;
 
+/// <summary>
+/// Provides helper methods for generating render fragments that create property column components for all properties of
+/// a specified entity type in a fluent data grid.
+/// </summary>
+/// <remarks>This class is intended for use with Blazor components that render data grids based on entity types.
+/// It simplifies the process of generating columns dynamically from entity metadata. The generated columns exclude
+/// properties with certain database types (such as 'json', 'xml', 'geography', etc.) and properties that are keys,
+/// foreign keys, concurrency tokens, or arrays.</remarks>
 public static class FluentDataGridEntityHelpers
 {
+    /// <summary>
+    /// Creates a render fragment that generates property column components for each property of the specified entity
+    /// type.
+    /// </summary>
+    /// <param name="type">The entity type whose properties will be rendered as columns.</param>
+    /// <param name="additonalAttributesFunc">An optional function that provides additional attributes for each property column component. If null, no
+    /// additional attributes are applied.</param>
+    /// <returns>A render fragment that renders property column components for all properties of the specified entity type.</returns>
     public static RenderFragment ColumnsRenderFragment(IEntityType type, Func<IProperty, IDictionary<string, object>>? additonalAttributesFunc = null)
     {
         return builder =>
