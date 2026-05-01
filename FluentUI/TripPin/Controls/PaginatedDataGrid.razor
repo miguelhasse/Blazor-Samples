@@ -1,25 +1,28 @@
 ﻿@typeparam TGridItem
 
-<FluentStack Orientation="Orientation.Vertical" Style="@(Virtualize ? "height:400px;display:flex;" : "display:flex;")">
-    <FluentDataGrid @ref="_grid" TGridItem="@TGridItem" Items="@Items" Pagination="@_pagination" Virtualize="@Virtualize" HandleLoadingError="@(ex => true)" Loading="true" ResizableColumns="true" Style="width:100%;overflow-x:auto;">
-        <ChildContent>
-            @if (SelectMode.HasValue)
-            {
-                <SelectColumn TGridItem="@TGridItem" @bind-SelectedItems="@SelectedItems" Comparer="@Comparer" SelectMode="@SelectMode.Value" SelectFromEntireRow="true" />
-            }
-            @ChildContent
-        </ChildContent>
-        <ErrorContent>
-            <span @onclick="() => RefreshDataAsync()" style="cursor:pointer">
-                Error occurred  while loading data. Click here to retry.
-            </span>
-        </ErrorContent>
-    </FluentDataGrid>
-@if (_pagination != null)
-{
-    <FluentPaginator State="@_pagination" Style="width:100%" Disabled="@(_grid?.Loading ?? false)" />
-}
-</FluentStack>
+<div class="datagrid-container">
+    <div class="datagrid-scroll">
+        <FluentDataGrid @ref="_grid" TGridItem="@TGridItem" Items="@Items" Pagination="@_pagination" Virtualize="@Virtualize"
+                        HandleLoadingError="@(ex => true)" Loading="true" ResizableColumns="true" RowSize="DataGridRowSize.Small" AutoItemsPerPage="true" Style="width:100%;">
+            <ChildContent>
+                @if (SelectMode.HasValue)
+                {
+                    <SelectColumn TGridItem="@TGridItem" @bind-SelectedItems="@SelectedItems" Comparer="@Comparer" SelectMode="@SelectMode.Value" SelectFromEntireRow="true" />
+                }
+                @ChildContent
+            </ChildContent>
+            <ErrorContent>
+                <span @onclick="() => RefreshDataAsync()" style="cursor:pointer">
+                    Error occurred  while loading data. Click here to retry.
+                </span>
+            </ErrorContent>
+        </FluentDataGrid>
+    </div>
+    @if (_pagination != null)
+    {
+        <FluentPaginator State="@_pagination" Style="width:100%" Disabled="@(_grid?.Loading ?? false)" />
+    }
+</div>
 
 @code {
     private FluentDataGrid<TGridItem> _grid = default!;
