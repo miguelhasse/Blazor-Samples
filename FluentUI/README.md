@@ -1,122 +1,95 @@
 # FluentUI Samples
 
-This folder contains two sample applications that demonstrate [`Microsoft.FluentUI.AspNetCore.Components`](https://www.fluentui-blazor.net) DataGrid integration against different data backends. The projects show how to use advanced DataGrid features — virtualization, pagination, multi-select, and dynamic column generation — in both server-rendered and WebAssembly Blazor apps.
+The `FluentUI` folder contains two samples built around the same idea: use runtime metadata to generate `FluentDataGrid` instances instead of hand-authoring column definitions. One sample gets its metadata from EF Core and SQL Server; the other gets it from an OData service model and a generated client proxy.
 
-## Included projects
+## Projects
 
-### FluentUI.AdventureWorks
+| Project | Hosting model | Metadata source | Data source |
+|---|---|---|---|
+| `AdventureWorks\FluentUI.AdventureWorks.csproj` | Interactive server rendering | EF Core `IEntityType` metadata | SQL Server AdventureWorks database |
+| `TripPin\FluentUI.TripPin.csproj` | Blazor WebAssembly | OData EDM metadata | Public TripPin OData v4 service |
 
-An **interactive server-rendered** Blazor app that uses Entity Framework Core with SQL Server and the Fluent UI DataGrid Entity Framework adapter. The app inspects the EF Core model at runtime and renders a fully sortable, paginated or virtualized grid for any entity in the AdventureWorks database without hardcoding column definitions.
+Both current projects target `net10.0`. Package versions are managed centrally in `Directory.Packages.props`.
 
-Highlights:
+## Shared design pattern
 
-- Pooled `IDbContextFactory<AdventureWorksContext>` for efficient database connections
-- Runtime reflection and LINQ expression trees to generate `FluentDataGrid` columns dynamically
-- Toggle between **virtualized** (fixed-height, render-on-scroll) and **paginated** (20 rows per page) modes
-- Multi-select with a reflection-based `IEqualityComparer<T>` built from EF Core primary key metadata
-- Entity and schema discovery via query string parameter (`?entity=<schema.Table>`)
-- Supports SQL Server `HierarchyId` and NetTopologySuite geospatial columns
+Although the data sources are different, both samples follow the same runtime pipeline:
 
-### FluentUI.TripPin
+1. Discover available entities from a metadata model.
+2. Build a navigation menu from that metadata.
+3. Accept `?entity=...` in the main page.
+4. Materialize an `IQueryable<T>` for the selected entity set.
+5. Generate `PropertyColumn<,>` components dynamically.
+6. Create a custom equality comparer so row multi-select works for types only known at runtime.
+7. Render everything through a generic `PaginatedDataGrid<T>`.
 
-A **Blazor WebAssembly** app that connects to the public [TripPin OData v4 sample service](https://services.odata.org/TripPinRESTierService) and renders entity sets through the Fluent UI DataGrid OData adapter.
+That makes the samples useful as references for admin explorers, diagnostics tools, and schema-driven internal applications.
 
-Highlights:
+## Package layout
 
-- Typed OData client proxy generated from the service CSDL metadata
-- `AddODataClient` / `Microsoft.OData.Extensions.Client` for dependency-injected service access
-- Dynamic NavMenu and DataGrid columns derived from the OData service model at runtime
-- No local database required — runs entirely in the browser against a public service
+`Directory.Packages.props` centralizes the versions for:
 
-## Solution and target frameworks
+- `Microsoft.FluentUI.AspNetCore.Components`
+- Fluent UI DataGrid adapters for Entity Framework and OData
+- EF Core SQL Server packages
+- OData client packages
 
-- Solution: `..\FluentUI.Samples.sln`
-- Both projects target `net9.0` and `net10.0`
-- NuGet package versions are managed centrally in `Directory.Packages.props`
+The presence of both `.NET 9` and `.NET 10` package properties in that file reflects central package management, but the sample projects themselves currently compile for `net10.0`.
 
+## AdventureWorks in technical terms
 
-## Prerequisites
+`AdventureWorks` is a server-rendered schema explorer over a restored SQL Server sample database.
 
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) or [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- For `FluentUI.AdventureWorks`: a SQL Server instance with the [AdventureWorks sample database](https://learn.microsoft.com/en-us/sql/samples/adventureworks-install-configure) restored
-- For `FluentUI.TripPin`: no local infrastructure required
+Key implementation points:
 
-## Configuration
+- `Program.cs` registers `AddFluentUIComponents().AddDataGridEntityFrameworkAdapter()`
+- `AddPooledDbContextFactory<AdventureWorksContext>` keeps context creation efficient for interactive requests
+- SQL Server options enable `HierarchyId`, `NetTopologySuite`, and retry-on-failure
+- `Components\Layout\NavMenu.razor` groups entities by schema and links to `/?entity=<schema.Table>`
+- `Components\Pages\Home.razor` reflects over `DbContext.Set<TEntity>()` to create the runtime query
+- `Components\Controls\FluentDataGridEntityHelpers.cs` filters out unsupported column types such as `json`, `xml`, `geography`, `geometry`, `uniqueidentifier`, `hierarchyid`, and `rowversion`
 
-### AdventureWorks
+`PaginatedDataGrid.razor` switches between paging and virtualization by either creating a `PaginationState` or leaving it `null`.
 
-Update `AdventureWorks\appsettings.json` so `ConnectionStrings:AdventureWorks` points at your SQL Server instance:
+Docs: [`AdventureWorks\Readme.md`](AdventureWorks/Readme.md)
 
-```json
-{
-  "ConnectionStrings": {
-    "AdventureWorks": "Data Source=localhost;Initial Catalog=AdventureWorks;Integrated Security=True;Encrypt=False;"
-  }
-}
-```
+## TripPin in technical terms
 
-> **Note:** `Integrated Security=True` uses Windows authentication. Replace with `User ID=...;Password=...` for SQL authentication. Set `Encrypt=True` for production environments.
+`TripPin` is a browser-hosted metadata explorer for the public OData sample service.
 
-To regenerate the EF Core model after schema changes, run:
+Key implementation points:
 
-```powershell
-.\AdventureWorks\scaffold.cmd
-```
+- `Program.cs` registers `AddODataClient("TripPin").AddHttpClient()`
+- A scoped `Container` is built from the TripPin service root and the generated proxy types under `Connected Services\TripPinService`
+- `BuildingRequest` removes `OData-MaxVersion` and `OData-Version` headers before requests are sent
+- `Layout\NavMenu.razor` enumerates EDM entity sets from `Container.Format.LoadServiceModel()`
+- `Pages\Home.razor` resolves the CLR type for the selected entity set and reflects over `Container.CreateQuery<TEntity>(...)`
+- `Controls\FluentDataGridEntityHelpers.cs` skips collection and complex properties because they do not map cleanly to simple grid columns
 
-### TripPin
+This sample is entirely browser-hosted; there is no local API or database in the solution.
 
-No configuration is needed. The app targets the public TripPin OData service endpoint defined in `TripPin\Program.cs`.
+Docs: [`TripPin\Readme.md`](TripPin/Readme.md)
 
 ## Running the samples
 
 From the repository root:
 
 ```powershell
-# AdventureWorks (server-rendered, requires SQL Server)
-dotnet run --project .\FluentUI\AdventureWorks\FluentUI.AdventureWorks.csproj
+dotnet build .\FluentUI.Samples.sln
 
-# TripPin (WebAssembly, no local database required)
+dotnet run --project .\FluentUI\AdventureWorks\FluentUI.AdventureWorks.csproj
 dotnet run --project .\FluentUI\TripPin\FluentUI.TripPin.csproj
 ```
 
-Or open `FluentUI.Samples.sln` in Visual Studio and start the project you want to run.
+AdventureWorks also requires a valid `ConnectionStrings:AdventureWorks` entry in `AdventureWorks\appsettings.json`.
 
-Default ports:
+## Which sample to inspect for what
 
-| Project | URL |
-|---------|-----|
-| AdventureWorks | `https://localhost:7173` |
-| TripPin | `http://localhost:5000` |
-
-## Architecture notes
-
-### Dynamic column generation
-
-Both projects avoid hardcoded column lists. Instead, helper classes use reflection and LINQ expression trees to inspect the data model at runtime and produce `RenderFragment` column definitions for `FluentDataGrid`:
-
-- **AdventureWorks** — reads `IEntityType` metadata from the EF Core model
-- **TripPin** — reads `IEdmEntitySet` metadata from the OData CSDL
-
-### Virtualization vs. pagination
-
-`PaginatedDataGrid.razor` exposes a `Virtualize` parameter:
-
-| Mode | Container height | Rows rendered | Navigation |
-|------|-----------------|---------------|------------|
-| `Virtualize = false` (default) | Grows with content | All rows loaded in pages | Pagination control |
-| `Virtualize = true` | Fixed 400 px | Only visible rows | Scroll |
-
-### Equality comparison for multi-select
-
-A custom `IEqualityComparer<T>` is built dynamically from primary key properties (EF Core) or all non-shadow properties (OData). This ensures the DataGrid can correctly track selected rows even for entity types that are only known at runtime.
-
-## Additional references
-
-- [Fluent UI Blazor documentation](https://www.fluentui-blazor.net)
-- [Microsoft.FluentUI.AspNetCore.Components on GitHub](https://github.com/microsoft/fluentui-blazor)
-- [AdventureWorks sample database](https://learn.microsoft.com/en-us/sql/samples/adventureworks-install-configure)
-- [OData TripPin tutorial](https://learn.microsoft.com/en-us/odata/webapi/getting-started)
-- [ASP.NET Core Blazor documentation](https://learn.microsoft.com/en-us/aspnet/core/blazor)
-- [`AdventureWorks\Readme.md`](AdventureWorks/Readme.md)
-- [`TripPin\Readme.md`](TripPin/Readme.md)
-
+| If you need a reference for... | Start with |
+|---|---|
+| Dynamic Fluent UI grid columns from EF Core metadata | `AdventureWorks` |
+| Dynamic Fluent UI grid columns from OData metadata | `TripPin` |
+| Reflection-based row equality for metadata-driven grids | both samples' `Home.razor` pages |
+| Fluent UI navigation built from runtime schema information | both `NavMenu.razor` files |
+| Server-rendered interactive Fluent UI app | `AdventureWorks` |
+| Pure WebAssembly Fluent UI app | `TripPin` |

@@ -1,53 +1,109 @@
 # Blazor Samples
 
-This repository collects several focused Blazor samples that explore different hosting models, UI stacks, and data access patterns. Each sample is organized as its own solution or project group so you can inspect a single scenario in isolation or compare approaches side by side.
+This repository contains a small set of focused Blazor samples that each isolate one architectural idea instead of trying to be a full application template. The codebase is split into three independent solutions so you can open, build, and reason about each scenario without unrelated dependencies in the way.
 
-## Included samples
+## Repository topology
 
-### BlazorDualMode
+| Solution | Primary scenario | Main technologies | Current target frameworks |
+|---|---|---|---|
+| `BlazorDualMode.sln` | Switch the same UI between Blazor Server and Blazor WebAssembly at runtime | ASP.NET Core, Razor components, prerendering, persistent component state | `net7.0` |
+| `BlazorMapTiles.sln` | Serve custom vector tiles from ASP.NET Core and render them in Azure Maps | ASP.NET Core, Azure Maps, SQLite MBTiles, Protocol Buffers | `net7.0` |
+| `FluentUI.Samples.sln` | Build metadata-driven Fluent UI data grids over EF Core and OData | Fluent UI Blazor, EF Core, SQL Server, OData client | `net10.0` |
 
-Demonstrates how to switch a Blazor app between server and WebAssembly hosting at runtime by using either the `blazor-mode` query string parameter or the `ASPNETCORE_BLAZOR_MODE` environment variable.
+Top-level folders map directly to those solutions:
 
-Key ideas:
+```text
+BlazorDualMode\
+BlazorMapTiles\
+FluentUI\
+BlazorDualMode.sln
+BlazorMapTiles.sln
+FluentUI.Samples.sln
+```
 
-- Runtime selection between server and WebAssembly boot scripts
-- Shared components rendered through different hosting modes
-- Query-string and environment-driven configuration
+## Sample architecture at a glance
 
-Docs: [`BlazorDualMode\README.md`](BlazorDualMode/README.md)  
-Entry point: `BlazorDualMode.sln`
+### `BlazorDualMode`
 
-### BlazorMapTiles
+`BlazorDualMode` uses the classic hosted WebAssembly shape: `Server`, `Client`, and `Shared`. The server host renders `Client.App` through `_Host.cshtml`, but `_Host.cshtml.cs` decides at request time whether the page should boot `blazor.server.js` or `blazor.webassembly.js`. The selected render mode comes from the `blazor-mode` query string first and falls back to `ASPNETCORE_BLAZOR_MODE`.
 
-Shows how to host an Azure Maps-based Blazor application that consumes a custom vector tile endpoint backed by OpenStreetMap-derived data stored in `Assets\tiles.db`.
+The interesting part is that the UI does not change when the hosting model changes. Shared pages depend on `IWeatherForecastService`, and each hosting mode supplies its own implementation: the server implementation generates forecasts in-process, while the WebAssembly implementation calls back into the server API. One page also uses `PersistentComponentState` so you can inspect the difference between a naive prerendered fetch and a preserved prerendered payload.
 
-Key ideas:
+Docs: [`BlazorDualMode\README.md`](BlazorDualMode/README.md)
 
-- Azure Maps integration from a Blazor app
-- Custom vector tile delivery from ASP.NET Core controllers
-- Shared UI across server and WebAssembly hosting modes
+### `BlazorMapTiles`
 
-Docs: [`BlazorMapTiles\README.md`](BlazorMapTiles/README.md)  
-Entry point: `BlazorMapTiles.sln`
+`BlazorMapTiles` keeps the same `Server` / `Client` / `Shared` split but adds two data-centric pieces: a checked-in `Assets\tiles.db` MBTiles database and a `VectorTile` class library. The server reads compressed vector tile blobs from SQLite, converts from TMS row addressing to XYZ addressing, decodes the Protocol Buffer payload, optionally filters layers, then re-encodes the result for HTTP delivery from `TilesController`.
 
-### FluentUI samples
+The shared pages use `AzureMapsControl.Components` to register a `VectorTileSource` that points back at the server route `tiles/{z}/{x}/{y}.pbf`. Once the source is ready, the sample adds a `LineLayer` for railway geometry and a `BubbleLayer` for station points. A second page wires in Azure Maps drawing controls so you can inspect map events and geometry output.
 
-Contains two samples that showcase `Microsoft.FluentUI.AspNetCore.Components` with different data sources.
+Docs: [`BlazorMapTiles\README.md`](BlazorMapTiles/README.md)
 
-- `FluentUI.AdventureWorks` uses a SQL Server-backed Entity Framework Core model and the Fluent UI DataGrid Entity Framework adapter.
-- `FluentUI.TripPin` uses the public TripPin OData service and the Fluent UI DataGrid OData adapter.
+### `FluentUI`
 
-Docs: [`FluentUI\README.md`](FluentUI/README.md)  
-Entry point: `FluentUI.Samples.sln`
+The `FluentUI` folder contains two samples that both build `FluentDataGrid` instances from runtime metadata instead of hardcoded column definitions. `AdventureWorks` is an interactive server-rendered app over EF Core and SQL Server. `TripPin` is a WebAssembly app over the public TripPin OData service. Both samples use the Fluent UI Blazor DataGrid adapters and both create columns, row comparers, and navigation from model metadata.
 
-## Getting started
+This is the most reflection-heavy part of the repository. In `AdventureWorks`, the app reads `IEntityType` metadata from the EF Core model, locates the requested entity set from `?entity=<schema.Table>`, creates `DbSet<TEntity>` through reflection, and dynamically instantiates a generic `PaginatedDataGrid<TEntity>`. In `TripPin`, the same pattern is driven from the OData EDM model and a generated client proxy produced by OData Connected Service.
 
-1. Install the .NET SDK required by the sample you want to run.
-2. Open the corresponding solution file in Visual Studio, or run the sample with `dotnet run`.
-3. Follow the sample-specific configuration steps in the linked project README before launching apps that require external services or credentials.
+Docs: [`FluentUI\README.md`](FluentUI/README.md)
 
-## References
+## Running the samples
 
-- [Managed identities for Azure Maps](https://techcommunity.microsoft.com/t5/azure-maps-blog/managed-identities-for-azure-maps/ba-p/3666312)
-- [Prerender and integrate ASP.NET Core Razor components](https://learn.microsoft.com/en-us/aspnet/core/blazor/components/prerendering-and-integration)
-- [Mapbox Vector Tile Specification](http://mapbox.github.io/vector-tile-spec/)
+### Prerequisites
+
+- [.NET 7 SDK](https://dotnet.microsoft.com/download/dotnet/7.0) for `BlazorDualMode` and `BlazorMapTiles`
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) for the `FluentUI` samples
+- An Azure Maps subscription key for `BlazorMapTiles`
+- A SQL Server instance with the AdventureWorks sample database restored for `FluentUI.AdventureWorks`
+
+### Typical commands
+
+```powershell
+dotnet build .\BlazorDualMode.sln
+dotnet build .\BlazorMapTiles.sln
+dotnet build .\FluentUI.Samples.sln
+```
+
+Run individual applications from the repository root:
+
+```powershell
+dotnet run --project .\BlazorDualMode\Server\BlazorDualMode.Server.csproj
+dotnet run --project .\BlazorMapTiles\Server\BlazorMapTiles.Server.csproj
+dotnet run --project .\FluentUI\AdventureWorks\FluentUI.AdventureWorks.csproj
+dotnet run --project .\FluentUI\TripPin\FluentUI.TripPin.csproj
+```
+
+## Code organization patterns reused in the repo
+
+### Hosted Blazor layout
+
+Both `BlazorDualMode` and `BlazorMapTiles` use the older hosted WebAssembly pattern:
+
+- `Server` owns the HTTP pipeline, static files, prerendering host page, and APIs
+- `Client` owns the browser boot entry point and client-specific services
+- `Shared` contains reusable pages and components compiled into both apps
+
+That structure makes it easy to compare how the same Razor UI behaves when the execution boundary moves between browser and server.
+
+### Metadata-driven UI
+
+The Fluent UI samples avoid hand-authored table definitions. Instead they:
+
+1. Discover available entities from a metadata source.
+2. Build navigation links from that metadata.
+3. Generate `PropertyColumn<,>` components at runtime.
+4. Create equality comparers dynamically so multi-select works for unknown entity types.
+
+That pattern is useful if you want a grid explorer, admin shell, or diagnostics UI over a changing schema.
+
+### Vendored static assets
+
+The two hosted samples include a vendored `open-iconic` asset directory under `Client\wwwroot\css`. Those files are not custom code; they exist so the classic Blazor navigation components can import `open-iconic-bootstrap.min.css` and resolve the associated font files locally.
+
+## Documentation map
+
+- [`BlazorDualMode\README.md`](BlazorDualMode/README.md)
+- [`BlazorMapTiles\README.md`](BlazorMapTiles/README.md)
+- [`FluentUI\README.md`](FluentUI/README.md)
+- [`FluentUI\AdventureWorks\Readme.md`](FluentUI/AdventureWorks/Readme.md)
+- [`FluentUI\TripPin\Readme.md`](FluentUI/TripPin/Readme.md)

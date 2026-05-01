@@ -1,129 +1,140 @@
 # BlazorDualMode
 
-`BlazorDualMode` is a .NET 7 sample application that demonstrates how to run the same Blazor application under both **server-side** and **WebAssembly** hosting models without rebuilding. The hosting mode can be switched at runtime via a query string parameter or an environment variable, making it an ideal reference for teams evaluating or migrating between Blazor deployment strategies.
+`BlazorDualMode` is a hosted Blazor sample that renders the same component tree in either Blazor Server or Blazor WebAssembly without changing the application build. The server project always owns the HTTP entry point, but each request can choose a different render mode and boot script.
 
-## What the sample demonstrates
+## Solution structure
 
-- Runtime selection between Blazor Server and Blazor WebAssembly hosting models
-- Switching modes via the `blazor-mode` query string parameter or the `ASPNETCORE_BLAZOR_MODE` environment variable
-- Sharing UI components across both hosting models through a common `Shared` project
-- Interface-driven service registration so each hosting model can provide its own implementation
-- Component state persistence across prerendering and hydration using `PersistentComponentState`
-- A weather forecast feature with both a basic and a state-preserving variant
+| Project | Purpose |
+|---|---|
+| `Server\BlazorDualMode.Server.csproj` | ASP.NET Core host, `_Host` page, API controller, server-side forecast service |
+| `Client\BlazorDualMode.Client.csproj` | WebAssembly entry point and browser-side forecast service |
+| `Shared\BlazorDualMode.Shared.csproj` | Shared pages, contracts, DTOs, and runtime helpers |
 
-## Prerequisites
+All three projects target `net7.0`.
 
-- [.NET 7 SDK](https://dotnet.microsoft.com/download/dotnet/7.0)
-- Visual Studio 2022, VS Code with the C# extension, or the .NET CLI
+## What the sample is demonstrating
 
-## Building the sample
+### 1. Request-time render mode selection
 
-```powershell
-# Restore and build
-dotnet restore BlazorDualMode.sln
-dotnet build   BlazorDualMode.sln
+`Server\Pages\_Host.cshtml.cs` resolves a `RenderMode` by reading:
 
-# Release build
-dotnet build -c Release BlazorDualMode.sln
+1. `Request.Query["blazor-mode"]`
+2. `Environment.GetEnvironmentVariable("ASPNETCORE_BLAZOR_MODE")`
+
+If neither value parses successfully, the app defaults to `WebAssemblyPrerendered`.
+
+That model then drives two things:
+
+- the Razor component render mode passed into `<component type="@typeof(Client.App)" ... />`
+- the boot script name in `_Host.cshtml`
+
+```html
+<script src="_framework/blazor.@(Model.HostingMode).js" autostart="false"></script>
 ```
 
-## Running the sample
+`HostingMode` is `"server"` for the server render modes and `"webassembly"` for the WebAssembly render modes, so the page swaps between `blazor.server.js` and `blazor.webassembly.js` automatically.
 
-Start the `Server` project; it serves both hosting modes:
+### 2. Shared UI with mode-specific services
 
-```powershell
-dotnet run --project .\BlazorDualMode\Server\BlazorDualMode.Server.csproj
+Shared pages depend on `IWeatherForecastService` from `Shared\IWeatherForecastService.cs`.
+
+- `Server\WeatherForecastService.cs` generates forecast data locally.
+- `Client\WeatherForecastService.cs` calls `/api/SampleData/WeatherForecasts`.
+- `Server\Controllers\SampleDataController.cs` exposes the HTTP endpoint used by the browser-hosted variant.
+
+Because both implementations satisfy the same interface, `Shared\Pages\FetchData.razor` does not care where the code is executing.
+
+### 3. Prerender-state preservation
+
+`Shared\Pages\FetchDataPreserveState.razor` shows the correct pattern for avoiding a duplicate data fetch during prerender + hydration:
+
+- register a persistence callback with `PersistentComponentState`
+- write the fetched payload with `PersistAsJson`
+- read it back on hydration with `TryTakeFromJson`
+
+The host page only emits `<persist-component-state />` when the chosen render mode is prerendered, so this page is also a useful reference for the contract between the host page and the component tree.
+
+### 4. Runtime environment detection
+
+`Shared\RuntimeMode.cs` exposes a browser check based on:
+
+```csharp
+RuntimeInformation.IsOSPlatform(OSPlatform.Create("BROWSER"))
 ```
 
-Or open `BlazorDualMode.sln` in Visual Studio, set `BlazorDualMode.Server` as the startup project, and press **F5**.
+That helper gives shared code a lightweight way to branch on server vs. browser execution when interface-based abstraction is not enough.
 
-The application will be available at `https://localhost:5001` by default.
+## Request and startup flow
 
-## Switching hosting modes
+```text
+Browser request
+    -> Server\Pages\_Host.cshtml.cs resolves RenderMode
+    -> Server\Pages\_Host.cshtml renders Client.App
+    -> Host page chooses blazor.server.js or blazor.webassembly.js
+    -> Blazor starts with autostart disabled and explicit Blazor.start(...)
+    -> Shared pages resolve services from the active host
+```
 
-### Query string
+`_Host.cshtml` also calls `Blazor.start(...)` manually with environment and SignalR logging configuration, which makes the bootstrap path more explicit than the default template-generated host page.
 
-Append `?blazor-mode=<value>` to any URL:
+## Routes in the shared UI
 
-| Value | Behaviour |
-|-------|-----------|
-| `Server` | Server-side rendering, no prerender |
-| `ServerPrerendered` | Server-side rendering with prerender |
-| `WebAssembly` | WebAssembly, no prerender |
-| `WebAssemblyPrerendered` | WebAssembly with prerender (default) |
+| Route | File | Notes |
+|---|---|---|
+| `/` | `Client\Pages\Index.razor` | Standard landing page |
+| `/counter` | `Client\Pages\Counter.razor` | Simple interactive counter |
+| `/fetchdata` | `Shared\Pages\FetchData.razor` | Forecast fetch using the active service implementation |
+| `/fetch-with-preserve-state` | `Shared\Pages\FetchDataPreserveState.razor` | Same idea, but persists prerendered state |
 
-Example: `https://localhost:5001/?blazor-mode=ServerPrerendered`
+The navigation menu in `Client\Components\NavMenu.razor` links directly to those routes.
 
-### Environment variable
+## Render mode values
 
-Set `ASPNETCORE_BLAZOR_MODE` before launching the server:
+The sample accepts the built-in ASP.NET Core render mode names:
+
+| Value | Effect |
+|---|---|
+| `Server` | Interactive server rendering without prerender |
+| `ServerPrerendered` | Interactive server rendering with prerender |
+| `WebAssembly` | Client-side WebAssembly without prerender |
+| `WebAssemblyPrerendered` | WebAssembly with server prerender; default |
+
+Example:
+
+```text
+https://localhost:5001/?blazor-mode=ServerPrerendered
+```
+
+PowerShell example:
 
 ```powershell
 $env:ASPNETCORE_BLAZOR_MODE = "ServerPrerendered"
 dotnet run --project .\BlazorDualMode\Server\BlazorDualMode.Server.csproj
 ```
 
-## How dual-mode hosting works
+## Build and run
 
-### 1. Host page selects the boot script
+From the repository root:
 
-`_Host.cshtml.cs` reads the mode from the query string or environment variable and resolves a `RenderMode` enum value. It also sets a `HostingMode` string (`"server"` or `"webassembly"`) used by the host page to load the correct Blazor boot script:
-
-```html
-<script src="_framework/blazor.@(Model.HostingMode).js" autostart="false"></script>
+```powershell
+dotnet restore .\BlazorDualMode.sln
+dotnet build .\BlazorDualMode.sln
+dotnet run --project .\BlazorDualMode\Server\BlazorDualMode.Server.csproj
 ```
 
-### 2. Interface-based services
+Open the server URL reported by ASP.NET Core and add `?blazor-mode=...` as needed.
 
-Both projects register identical `IWeatherForecastService` interfaces but with different implementations:
+## Extension points
 
-- **Client** — sends an HTTP request to `/api/SampleData/WeatherForecasts`
-- **Server** — generates random data in-process
+- Add more shared services by following the existing `IWeatherForecastService` split.
+- Add more mode-sensitive pages in `Shared\Pages` so they compile into both hosts.
+- Replace the mode resolution logic in `_Host.cshtml.cs` if you want per-user cookies, feature flags, or route-based selection instead of query string / environment values.
 
-This pattern allows shared Razor components to call the service without knowing which hosting model is active.
+## Related files
 
-### 3. State persistence across prerendering
-
-`FetchDataPreserveState.razor` uses `PersistentComponentState` to serialise fetched data during server prerendering and restore it on the client after hydration, avoiding a redundant network call:
-
-```csharp
-persistingSubscription = ApplicationState.RegisterOnPersisting(PersistForecasts);
-
-forecasts = ApplicationState.TryTakeFromJson<WeatherForecast[]>("fetchdata", out var restored)
-    ? restored!
-    : await ForecastService.GetForecastAsync();
-```
-
-### 4. Runtime environment detection
-
-`RuntimeMode.cs` exposes a static flag that components can read to determine whether they are executing in the browser:
-
-```csharp
-public static bool IsWebAssembly =
-    RuntimeInformation.IsOSPlatform(OSPlatform.Create("BROWSER"));
-```
-
-## Pages and components
-
-| Path | Description |
-|------|-------------|
-| `/` | Home page |
-| `/counter` | Interactive counter — demonstrates client-side state |
-| `/fetchdata` | Weather forecast table (basic) |
-| `/fetchdata-preserve-state` | Weather forecast table with state persistence |
-
-## Comparison of hosting models
-
-| Aspect | Server-side | WebAssembly |
-|--------|-------------|-------------|
-| **Execution** | .NET runs on the server | .NET runs in the browser via WebAssembly |
-| **Initial load** | Fast — no large download | Slower — downloads .NET runtime |
-| **Interactivity** | Requires SignalR connection | Works fully offline after load |
-| **Latency** | Network round-trips on each interaction | Instant local execution |
-| **Scalability** | Server resources per connection | Workload offloaded to client |
-
-## Additional references
-
-- [Prerender and integrate ASP.NET Core Razor components](https://learn.microsoft.com/en-us/aspnet/core/blazor/components/prerendering-and-integration)
-- [ASP.NET Core Blazor hosting models](https://learn.microsoft.com/en-us/aspnet/core/blazor/hosting-models)
-- [Persist prerendered state in Blazor](https://learn.microsoft.com/en-us/aspnet/core/blazor/components/prerendering-and-integration#persist-prerendered-state)
+- `Server\Pages\_Host.cshtml`
+- `Server\Pages\_Host.cshtml.cs`
+- `Server\Controllers\SampleDataController.cs`
+- `Client\Program.cs`
+- `Shared\Pages\FetchData.razor`
+- `Shared\Pages\FetchDataPreserveState.razor`

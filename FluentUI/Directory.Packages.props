@@ -10,11 +10,11 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- For Sample Apps -->
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.14.0" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" version="4.14.0" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.14.1" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" version="4.14.1" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Emoji" Version="4.13.2" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.DataGrid.EntityFrameworkAdapter" Version="4.14.0" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.DataGrid.ODataAdapter" Version="4.14.0" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.DataGrid.EntityFrameworkAdapter" Version="4.14.1" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.DataGrid.ODataAdapter" Version="4.14.1" />
     <!-- Shared dependencies -->
     <PackageVersion Include="Markdig.Signed" Version="0.34.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
@@ -47,8 +47,8 @@
   <ItemGroup Condition="'$(TargetFramework)'=='net10.0'">
     <!-- Build dependencies -->
     <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="$(AspNetCoreVersion10)" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.7" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="$(RuntimeVersion10)" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="$(RuntimeVersion10)" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="$(RuntimeVersion10)" />
@@ -58,10 +58,10 @@
     <PackageVersion Include="Microsoft.Extensions.Validation" Version="$(RuntimeVersion10)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(EfCoreVersion10)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EfCoreVersion10)" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer.HierarchyId" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer.HierarchyId" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="10.0.7" />
     <PackageVersion Include="System.Text.Encodings.Web" Version="$(RuntimeVersion10)" />
   </ItemGroup>
 </Project>
