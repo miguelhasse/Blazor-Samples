@@ -67,21 +67,40 @@ On parameter changes it:
 
 The result is the OData equivalent of the AdventureWorks sample's EF Core pipeline.
 
-## Column generation rules
+## FluentDataGridEntityHelpers deep dive
 
-`Controls\FluentDataGridEntityHelpers.cs` iterates over `entitySet.EntityType.DeclaredProperties` and skips:
+`Controls\FluentDataGridEntityHelpers.cs` is the core adapter between TripPin's EDM metadata and Fluent UI's strongly typed `PropertyColumn<,>` component model. `Pages\Home.razor` already knows the selected `IEdmEntitySet`, but the grid API still expects real CLR lambdas such as `person => person.FirstName`. This helper is the runtime bridge that turns metadata into those lambdas.
 
-- collection properties
-- complex properties
+`ColumnsRenderFragment(...)` returns a single `RenderFragment` that emits one grid column per eligible property. The method loops over `entitySet.EntityType.DeclaredProperties`, opens a render-tree region for each property, and delegates the actual column construction to `AddPropertyColumnComponent(...)`. That split is important because the outer method stays responsible for column ordering and stable render-tree grouping, while the inner method decides whether a property can become a column at all.
 
-For each remaining property it:
+The property filter is intentionally simple and OData-specific:
 
-- resolves the declaring CLR type
-- builds a `LambdaExpression` for `PropertyColumn<,>`
-- assigns the OData property name as the column title
-- applies any additional attributes such as `Sortable = true`
+- `property.Type.IsCollection()` is excluded because collection-valued navigation and primitive collections do not map to a single cell value.
+- `property.Type.IsComplex()` is excluded because complex types would require nested column composition or custom templates instead of a plain `PropertyColumn`.
 
-This keeps the sample focused on scalar properties that map cleanly to a tabular UI.
+Everything else is treated as grid-friendly. That means the helper is deliberately driven by the EDM model, not by custom allowlists per entity set. If the TripPin metadata adds another scalar property later, the grid picks it up automatically.
+
+For each included property, the helper performs four runtime steps:
+
+1. Call `resolveType(property.DeclaringType.FullTypeName())` to map the EDM declaring type to the generated CLR proxy type from `Connected Services\TripPinService`.
+2. Find the matching CLR `PropertyInfo` by name with `declaringType.GetProperty(property.Name)`.
+3. Build an expression tree of shape `Func<TEntity, TProperty>` using `Expression.Parameter`, `Expression.Property`, and `Expression.Lambda`.
+4. Instantiate `PropertyColumn<TEntity, TProperty>` with `MakeGenericType(...)`, assign the generated lambda to `Property`, set `Title` to the OData property name, and merge any caller-supplied attributes.
+
+That last step is why `Home.razor` can pass:
+
+```csharp
+prop => new Dictionary<string, object> { { "Sortable", true } }
+```
+
+without knowing the entity's CLR shape up front. The helper preserves strong typing inside the generated column component even though the page itself is operating almost entirely through metadata and reflection.
+
+Two smaller implementation details matter:
+
+- the column title comes from `property.Name`, so the UI mirrors the service metadata exactly rather than using display attributes or hand-authored labels
+- the helper iterates `DeclaredProperties`, not every inherited property on the CLR type, which keeps the grid aligned with the entity definition exposed by the selected OData set
+
+The result is a narrow but reliable abstraction: TripPin can render any entity set backed by scalar EDM properties without creating per-entity Razor components or per-property column definitions.
 
 ## Pagination and virtualization
 
