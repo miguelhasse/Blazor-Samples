@@ -139,11 +139,8 @@ dotnet run --project .\FluentUI\TripPin\FluentUI.TripPin.csproj
 
 Because the sample talks to a public OData service, no local database or server setup is required.
 
-## Files worth reading first
+## References
 
-- `Program.cs`
-- `Layout\NavMenu.razor`
-- `Pages\Home.razor`
-- `Controls\PaginatedDataGrid.razor`
-- `Controls\FluentDataGridEntityHelpers.cs`
-- `Connected Services\TripPinService\ConnectedService.json`
+- [TripPin - OData V4 Sample Service](https://www.odata.org/blog/trippin-new-odata-v4-sample-service/)
+- [OData Documentation](https://learn.microsoft.com/en-us/odata/)
+- [OData Dev Blog](https://devblogs.microsoft.com/odata/)

@@ -224,13 +224,6 @@ dotnet run --project .\FluentUI\AdventureWorks\FluentUI.AdventureWorks.csproj
 
 Then choose a table or view from the left navigation menu.
 
-## Files worth reading first
+## References
 
-- `Program.cs`
-- `Components\Layout\NavMenu.razor`
-- `Components\Pages\Home.razor`
-- `Components\Controls\PaginatedDataGrid.razor`
-- `Components\Controls\FluentDataGridEntityHelpers.cs`
-- `Components\Controls\FluentDataGridReflectionHelpers.cs`
-- `Data\AdventureWorksContext.cs`
-- `scaffold.cmd`
+- [Azure Data SQL Samples Repository](https://github.com/Microsoft/sql-server-samples/releases/tag/adventureworks) - code samples that demonstrate how to use Microsoft's Azure Data products including SQL Server, Azure SQL Database, Azure Synapse, and Azure SQL Edge. 
