@@ -53,7 +53,7 @@ On parameter changes it:
 3. Sets `QueryTrackingBehavior.NoTracking` because the page is a read-only explorer.
 4. Locates the requested `IEntityType` by matching `schema.table` or `schema.view`.
 5. Uses reflection to call `DbContext.Set<TEntity>()` for the runtime CLR type.
-6. Generates grid columns with `FluentDataGridEntityHelpers.ColumnsRenderFragment(...)`.
+6. Generates grid columns with `FluentDataGridEntityHelpers.ColumnsRenderFragment(...)`. Scalar properties become `PropertyColumn<,>` instances; `xml`, `json`, `geography`, and `geometry` properties become `TemplateColumn<TEntity>` instances with built-in summarising renderers; keys, foreign keys, and opaque types are omitted.
 7. Builds a runtime `IEqualityComparer<T>` from primary-key metadata.
 8. Instantiates `PaginatedDataGrid<TEntity>` dynamically.
 
@@ -61,34 +61,66 @@ The entire grid is therefore a runtime composition over EF Core metadata.
 
 ## FluentDataGridEntityHelpers deep dive
 
-`Components\Controls\FluentDataGridEntityHelpers.cs` is the main runtime column factory used by `Components\Pages\Home.razor`. Once the page resolves an `IEntityType` from EF Core metadata, it passes that metadata object into `ColumnsRenderFragment(...)` and lets the helper turn model properties into real `PropertyColumn<TEntity, TProperty>` instances.
+`Components\Controls\FluentDataGridEntityHelpers.cs` is the main runtime column factory used by `Components\Pages\Home.razor`. Once the page resolves an `IEntityType` from EF Core metadata, it passes that metadata object into `ColumnsRenderFragment(...)` and lets the helper turn model properties into grid column components.
 
-The flow inside the helper is:
+### Three-tier column classification
 
-1. `ColumnsRenderFragment(...)` asks `GetPropertyColumns(type)` for the list of grid-eligible `IProperty` instances.
-2. It opens a render-tree region per property so each generated column is emitted as a separate unit in the fragment.
-3. `AddPropertyColumnComponent(...)` constructs `PropertyColumn<,>` with the entity CLR type and the property's CLR type.
-4. `BuildPropertyExpression(...)` builds the strongly typed lambda the grid needs for its `Property` parameter.
-5. The helper sets `Title` from `property.GetColumnName()` and merges any caller-supplied attributes, such as `Sortable = true`.
+The helper classifies every mapped property into one of three tiers before it produces any output:
 
-That means the page never has to know whether the selected entity is `Product`, `Customer`, or some scaffolded view type. The helper converts EF Core metadata into a fully typed grid definition at render time.
+| Tier | Outcome | Properties matched |
+|---|---|---|
+| **Property** | `PropertyColumn<TEntity, TProperty>` | All remaining scalar properties |
+| **Template** | `TemplateColumn<TEntity>` with a built-in summariser | `xml`, `json`, `geography`, `geometry` |
+| **Exclude** | column omitted | keys, foreign keys, concurrency tokens, arrays, `uniqueidentifier`, `hierarchyid`, `rowversion` |
 
-`GetPropertyColumns(...)` is where most of the guardrails live. It filters out properties that are technically present in the model but poor fits for a generic text-oriented grid:
+`ClassifyProperty(IProperty)` implements this with a switch on `p.GetColumnType()` and a fallback guard on structural property roles.
 
-- key properties, because the sample uses them internally for identity and selection more than for display
-- foreign-key properties, which would otherwise add a lot of implementation-detail columns
-- concurrency tokens, which are usually storage mechanics rather than user-facing data
-- array-valued CLR properties, because `PropertyColumn` expects a scalar-ish value path
-- SQL Server types `json`, `xml`, `geography`, `geometry`, `uniqueidentifier`, `hierarchyid`, and `rowversion`
+### Property columns
 
-The SQL type exclusions are especially important in AdventureWorks. The sample intentionally points at a scaffolded SQL Server model that contains provider-specific types. Rather than failing or rendering poor default text for those members, the helper excludes them up front so the generated grid remains broadly usable across many tables and views.
+`AddPropertyColumnComponent(...)` constructs `PropertyColumn<,>` with the entity CLR type and the property's CLR type. `BuildPropertyExpression(...)` builds the strongly typed lambda the grid needs for its `Property` parameter. The helper sets `Title` from `property.GetColumnName()` and merges any caller-supplied attributes such as `Sortable = true`.
 
-`BuildPropertyExpression(...)` deserves special attention because it is what keeps the dynamic grid strongly typed. The helper creates a parameter expression for the entity CLR type, accesses `property.PropertyInfo`, and wraps that access in a closed generic `Func<TEntity, TProperty>`. The resulting expression is then passed into a runtime-constructed `PropertyColumn<TEntity, TProperty>`. Even though the page itself is assembling the grid dynamically, each generated column still behaves like a normal strongly typed Fluent UI grid column.
+Even though the page assembles the grid dynamically, each generated property column still behaves like a normal strongly typed Fluent UI grid column.
 
-There are also two deliberate naming choices in the helper:
+### Template columns
 
-- it uses `property.GetColumnName()` for the title, so the UI reflects the actual database column name rather than only the CLR property name
-- it iterates `type.GetProperties()`, which means inherited mapped properties are considered along with properties declared directly on the entity type
+`AddTemplateColumnComponent(...)` constructs `TemplateColumn<TEntity>` for properties that have a database type the grid cannot sort or display natively.
+
+The built-in default renderers are:
+
+| SQL type | Default cell content |
+|---|---|
+| `xml` / `json` | `{ xml · 1 432 chars }` — char-count badge in a `<code>` element |
+| `geometry` / `geography` (Point subtype) | `(lat, lon)` coordinate pair via NTS `Point.X` / `Point.Y` |
+| `geometry` / `geography` (other shapes) | WKT string via NTS `Geometry.ToString()` |
+
+The NTS package `Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite` is already referenced in the project, so these helpers work without extra dependencies.
+
+### Custom template rendering
+
+`ColumnsRenderFragment(...)` accepts an optional third parameter:
+
+```csharp
+Func<IProperty, Func<object, RenderFragment>?>? templateFactory = null
+```
+
+When provided, the factory is called for every Template-classified property. Return a `Func<object, RenderFragment>` to supply custom cell content, or return `null` to fall back to the built-in default for that property:
+
+```csharp
+FluentDataGridEntityHelpers.ColumnsRenderFragment(entityType,
+    prop => new Dictionary<string, object> { { "Sortable", true } },
+    templateFactory: prop => prop.GetColumnType() == "xml"
+        ? entity => b => { /* custom rendering */ }
+        : null);
+```
+
+### Why the Exclude tier still exists
+
+Key and foreign-key columns are used internally by the sample for selection identity and are not useful as display columns. Concurrency tokens and arrays have no single-cell representation. `uniqueidentifier`, `hierarchyid`, and `rowversion` are storage-mechanics columns with opaque representations that add noise to a generic explorer grid.
+
+### Naming conventions in the helper
+
+- `property.GetColumnName()` is used for the column title so the UI reflects the actual database column name rather than only the CLR property name.
+- `type.GetProperties()` is used to iterate properties so inherited mapped properties are included alongside properties declared directly on the entity type.
 
 This helper is the reason the sample can point at a large scaffolded model and still get a sensible default grid without per-entity Razor markup.
 

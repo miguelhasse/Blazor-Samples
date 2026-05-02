@@ -91,7 +91,7 @@ The Fluent UI samples avoid hand-authored table definitions. Instead they:
 
 1. Discover available entities from a metadata source.
 2. Build navigation links from that metadata.
-3. Generate `PropertyColumn<,>` components at runtime.
+3. Generate `PropertyColumn<,>` components for scalar properties and `TemplateColumn<TEntity>` components for complex types at runtime.
 4. Create equality comparers dynamically so multi-select works for unknown entity types.
 
 That pattern is useful if you want a grid explorer, admin shell, or diagnostics UI over a changing schema.

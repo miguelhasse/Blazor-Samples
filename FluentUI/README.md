@@ -19,7 +19,7 @@ Although the data sources are different, both samples follow the same runtime pi
 2. Build a navigation menu from that metadata.
 3. Accept `?entity=...` in the main page.
 4. Materialize an `IQueryable<T>` for the selected entity set.
-5. Generate `PropertyColumn<,>` components dynamically.
+5. Generate `PropertyColumn<,>` components for scalar properties and `TemplateColumn<TEntity>` components for complex types dynamically.
 6. Create a custom equality comparer so row multi-select works for types only known at runtime.
 7. Render everything through a generic `PaginatedDataGrid<T>`.
 
@@ -47,7 +47,7 @@ Key implementation points:
 - SQL Server options enable `HierarchyId`, `NetTopologySuite`, and retry-on-failure
 - `Components\Layout\NavMenu.razor` groups entities by schema and links to `/?entity=<schema.Table>`
 - `Components\Pages\Home.razor` reflects over `DbContext.Set<TEntity>()` to create the runtime query
-- `Components\Controls\FluentDataGridEntityHelpers.cs` filters out unsupported column types such as `json`, `xml`, `geography`, `geometry`, `uniqueidentifier`, `hierarchyid`, and `rowversion`
+- `Components\Controls\FluentDataGridEntityHelpers.cs` classifies each property into one of three tiers: scalar properties become `PropertyColumn<,>` instances; `xml`, `json`, `geography`, and `geometry` properties become `TemplateColumn<TEntity>` instances with built-in summarising renderers; keys, foreign keys, and opaque types (`uniqueidentifier`, `hierarchyid`, `rowversion`) are excluded entirely
 
 `PaginatedDataGrid.razor` switches between paging and virtualization by either creating a `PaginationState` or leaving it `null`.
 
