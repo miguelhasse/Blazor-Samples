@@ -41,14 +41,13 @@ public static class FluentDataGridEntityHelpers
     {
         return builder =>
         {
-            var sequence = -1;
             foreach (var property in type.GetProperties())
             {
                 var classification = ClassifyProperty(property);
                 if (classification == ColumnClassification.Exclude)
                     continue;
 
-                builder.OpenRegion(sequence++);
+                builder.OpenRegion(0);
                 if (classification == ColumnClassification.Property)
                     builder.AddPropertyColumnComponent(property, additonalAttributesFunc);
                 else
