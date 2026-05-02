@@ -67,8 +67,13 @@ public static class FluentDataGridEntityHelpers
 
     private static void AddPropertyColumnComponent(this RenderTreeBuilder builder, IProperty property, Func<IProperty, IDictionary<string, object>>? additonalAttributesFunc)
     {
+        var parameter = Expression.Parameter(property.DeclaringType.ClrType, "c");
+        var propertyExpression = Expression.Lambda(
+            typeof(Func<,>).MakeGenericType(property.DeclaringType.ClrType, property.ClrType),
+            Expression.Property(parameter, property.PropertyInfo!), parameter);
+
         builder.OpenComponent(0, typeof(PropertyColumn<,>).MakeGenericType(property.DeclaringType.ClrType, property.ClrType));
-        builder.AddAttribute(1, "Property", BuildPropertyExpression(property));
+        builder.AddAttribute(1, "Property", propertyExpression);
         builder.AddAttribute(2, "Title", property.GetColumnName());
         builder.AddMultipleAttributes(3, additonalAttributesFunc != null ? additonalAttributesFunc(property) : null);
         builder.CloseComponent();
@@ -107,15 +112,12 @@ public static class FluentDataGridEntityHelpers
     {
         var columnType = property.GetColumnType();
         var propertyInfo = property.PropertyInfo!;
-        return entity =>
+
+        return entity => builder =>
         {
-            var value = propertyInfo.GetValue(entity);
-            return builder =>
-            {
-                builder.OpenElement(0, "code");
-                builder.AddContent(1, BuildCellText(columnType, value));
-                builder.CloseElement();
-            };
+            builder.OpenElement(0, "code");
+            builder.AddContent(1, BuildCellText(columnType, propertyInfo.GetValue(entity)));
+            builder.CloseElement();
         };
     }
 
@@ -127,21 +129,10 @@ public static class FluentDataGridEntityHelpers
         _ => value?.ToString() ?? string.Empty
     };
 
-    private static string FormatGeometry(object? value)
+    private static string FormatGeometry(object? value) => value switch
     {
-        if (value is null) return "null";
-        // NetTopologySuite.Geometries.Point exposes X (longitude) and Y (latitude)
-        if (value is NetTopologySuite.Geometries.Point pt)
-            return $"({pt.Y:F4}, {pt.X:F4})";
-        // Geometry.ToString() returns WKT for all other NTS geometry subtypes
-        return value.ToString() ?? string.Empty;
-    }
-
-    private static LambdaExpression BuildPropertyExpression(IProperty property)
-    {
-        var parameter = Expression.Parameter(property.DeclaringType.ClrType, "c");
-        return Expression.Lambda(
-            typeof(Func<,>).MakeGenericType(property.DeclaringType.ClrType, property.ClrType),
-            Expression.Property(parameter, property.PropertyInfo!), parameter);
-    }
+        null => "null",
+        NetTopologySuite.Geometries.Point pt => $"({pt.Y:F4}, {pt.X:F4})",
+        _ => value.ToString() ?? string.Empty
+    };
 }

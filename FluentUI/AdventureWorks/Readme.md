@@ -113,7 +113,7 @@ FluentDataGridEntityHelpers.ColumnsRenderFragment(entityType,
         : null);
 ```
 
-### Why the Exclude tier still exists
+### Why the Exclude tier exists
 
 Key and foreign-key columns are used internally by the sample for selection identity and are not useful as display columns. Concurrency tokens and arrays have no single-cell representation. `uniqueidentifier`, `hierarchyid`, and `rowversion` are storage-mechanics columns with opaque representations that add noise to a generic explorer grid.
 
