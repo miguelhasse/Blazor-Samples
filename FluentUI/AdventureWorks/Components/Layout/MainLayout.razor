@@ -4,17 +4,21 @@
     <FluentHeader>
         FluentUI AdventureWorks
     </FluentHeader>
-    <FluentStack Class="body-stack" Orientation="Orientation.Horizontal" Width="100%" HorizontalGap="0">
-        <NavMenu />
-        <FluentBodyContent Class="body-content">
-            <div class="content">
-                <article id="article">
-                    <FluentMessageBarProvider Section="@App.MESSAGES_TOP" />
-                    @Body
-                </article>
-            </div>
-        </FluentBodyContent>
-    </FluentStack>
+    <FluentSplitter BarSize="6" Orientation="Orientation.Horizontal" Panel1MinSize="15%" Panel2MinSize="200px">
+        <Panel1>
+            <NavMenu />
+        </Panel1>
+        <Panel2>
+            <FluentBodyContent Class="body-content">
+                <div class="content">
+                    <article id="article">
+                        <FluentMessageBarProvider Section="@App.MESSAGES_TOP" />
+                        @Body
+                    </article>
+                </div>
+            </FluentBodyContent>
+        </Panel2>
+    </FluentSplitter>
     <FluentFooter Style="height: 40px; color: white; font-size: var(--type-ramp-minus-1-font-size); line-height: var(--type-ramp-base-line-height);">
         <div class="link1">
             <a href="https://www.fluentui-blazor.net" target="_blank">Documentation and demos</a>
